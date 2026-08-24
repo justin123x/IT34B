@@ -26,6 +26,7 @@ try{
         )VALUES (?,?,?,?,?,?");
     
 
+        
 }catch(PDOException $e){
     error_log("Activity log Error:" .$e->getMessage());
     return false;
