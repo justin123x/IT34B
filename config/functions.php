@@ -1,61 +1,60 @@
 <?php
 
 function redirect($path){
-    header("location: " . BASE_URL . $path);
+    header("Location: " . BASE_URL . $path);
     exit;
 }
 
-function loginUser($pdo, $login, $password)
-{
+function loginUser($pdo, $login, $password){
+    #Query 2
     $sql = "
-        SELECT
+        SELECT 
             user_id,
             user_email,
             user_username,
             user_password,
             user_role
         FROM users
-        WHERE user_email = :login
-           OR user_username = :login
+        WHERE user_email = :login 
+            OR user_username = :login
         LIMIT 1
-    ";
+   ";
 
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([':login' => $login]);
+   $stmt = $pdo->prepare($sql);
+   $stmt->execute([ ':login' => $login]);
 
-    $user = $stmt->fetch();
+   $user = $stmt->fetch();
 
-    if (!$user) {
+   if(!$user){
         return false;
+   }
+
+    if(!password_verify($password, $user['user_password'])){
+          return false;
     }
 
-    if (!password_verify($password, $user['user_password'])) {
-        return false;
-    }
 
-    $_SESSION['user_id'] = $user['user_id'];
-    $_SESSION['user_email'] = $user['user_email'];
-    $_SESSION['user_username'] = $user['user_username'];
-    $_SESSION['user_role'] = $user['user_role'];
+   $_SESSION['user_id'] = $user['user_id'];    
+   $_SESSION['user_email'] = $user['user_email'];
+   $_SESSION['user_username'] = $user['user_username'];
+   $_SESSION['user_role'] = $user['user_role'];
 
-    return true;
-}
+   return true;
+}   
 
-function requireLogin()
-{
-    if (!isset($_SESSION['user_id'])) {
-        header('Location: ' . BASE_URL . '/index.php');
+function requireLogin(){
+    if(!isset($_SESSION['user_id'])){
+        header("Location: " . BASE_URL . '/index.php');
         exit;
     }
 }
 
-function requireRole($role)
-{
-    requireLogin();
+function requireRole($role){
+   requireLogin();
 
-    if ($_SESSION['user_role'] !== $role) {
+   if ($_SESSION['user_role'] !== $role){
         http_response_code(403);
-        die('Access denied.');
-    }
+        die('Access Denied.');
+   }
 }
 ?>
