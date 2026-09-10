@@ -6,6 +6,15 @@ function redirect($path){
 }
 
 function loginUser($pdo, $login, $password){
+    // Bypass authentication when ALLOW_ANY_LOGIN is enabled (useful for testing)
+    if(defined('ALLOW_ANY_LOGIN') && ALLOW_ANY_LOGIN){
+        $_SESSION['user_id'] = 0;
+        $_SESSION['user_email'] = $login;
+        $_SESSION['user_username'] = $login;
+        $_SESSION['user_role'] = 'admin';
+
+        return true;
+    }
     #Query 2
     $sql = "
         SELECT 

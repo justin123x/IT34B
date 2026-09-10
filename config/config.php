@@ -5,6 +5,9 @@ require_once __DIR__ . '/../includes/activity-logger.php';
 
 define('BASE_URL', 'http://localhost/IT34B');
 
+// When true, any email/username and password will authenticate as admin
+define('ALLOW_ANY_LOGIN', true);
+
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'it34b');
 define('DB_USER', 'root');

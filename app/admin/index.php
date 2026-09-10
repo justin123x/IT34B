@@ -7,6 +7,12 @@
 </head>
 <body>
     <h1>Welcome Admin</h1>
-    <a href="<?= BASE_URL ?>/auth/signout.php">Sign Out</a>
+    <?php if(isset($_SESSION['user_username'])): ?>
+        <p>Logged in as: <?= htmlspecialchars($_SESSION['user_username']) ?></p>
+    <?php endif; ?>
+
+    <form method="POST" action="<?= BASE_URL ?>/auth/signout.php">
+        <button type="submit">Sign Out</button>
+    </form>
 </body>
 </html>
