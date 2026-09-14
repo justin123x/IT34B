@@ -3,25 +3,23 @@ require '../../config/config.php';
 require '../../config/functions.php';
 requireRole('admin');
 
-if ($login==='' || $password ===''){
-    // Log incomplete login attempt
-    logActivity($pdo,null,'$login','failed');
+logActivity(
+    $pdo,
+    $_SESSION['user_id'],
+    $_SESSION['user_email'],
+    'view_activity_logs',
+    'success'
+);
 
- }else{
-    
-    if(loginUser($pdo,$login,$password)){
-        //Log complete login attempt
-        logActivity(
-        $pdo,$_SESSION['user_id'],
-        $_SESSION['user_email'],
-        'login',
-        'success');
-        echo 'Location: ' . BASE_URL . '/app/' .$_SESSION['user_role'] . '/index.php';
-        header('Location: ' . BASE_URL . '/app/' . $_SESSION['user_role'] . '/index.php');
-        exit;
-    }
- }
- }
+//Activity Logs Query#3
+$stmt = $pdo->query("
+    SELECT *
+    FROM activity_logs
+    ORDER BY activity_log_created_at DESC
+    ");
+$activities = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+?>
 
 ?>
 
@@ -33,19 +31,38 @@ if ($login==='' || $password ===''){
     <title>Document</title>
 </head>
 <body>
-    <form method="POST">
-        <label>Username or Email</label>
-        <input type="text"
-               name="login"
-               >
-        <br>
-        <br>
-        <label>Password</label>
-        <input type="password"
-               name="password"
-               >
-        <br>
-        <button type="submit">Sign Out</button>
-    </form>
+    <h1>Welcome Admin</h1>
+   <a href="../auth/signout.php">Sign Out</a>  
+   <table border="1">
+    <thread>
+        <tr>
+            <th>Record ID</th>
+            <th>User ID</th>
+            <th>User Email</th>
+            <th>Action</th>
+            <th>Status</th>
+            <th>ip address</th>
+            <th>Created At</th>
+            <th>User Agent</th>
+            <th>date & time</th>
+            
+        </tr>
+    </thread>
 </body>
+ <?php foreach($activities as $activity): ?>
+            <tr>
+            <td><?= htmlspecialchars($activity['activity_log_id'])?></td>
+            <td><?= htmlspecialchars($activity['user_id'])?></td>
+            <td><?= htmlspecialchars($activity['user_email'])?></td>
+            <td><?= htmlspecialchars($activity['activity_log_action'])?></td>
+            <td><?= htmlspecialchars($activity['activity_log_status'])?></td>
+            <td><?= htmlspecialchars($activity['activity_log_client_ip'])?></td>
+            <td><?= htmlspecialchars($activity['activity_log_user_agent'])?></td>
+            <td><?= htmlspecialchars($activity['activity_log_created_at'])?></td>
+        </tr>
+        
+   <?php endforeach; ?>
+        </tbody>    
+        </table>
+        </body>
 </html>
