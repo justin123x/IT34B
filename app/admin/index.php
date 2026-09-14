@@ -20,7 +20,7 @@ if ($login==='' || $password ===''){
         header('Location: ' . BASE_URL . '/app/' . $_SESSION['user_role'] . '/index.php');
         exit;
     }
-
+ }
  }
 
 ?>
