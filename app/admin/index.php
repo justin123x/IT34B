@@ -1,7 +1,28 @@
 <?php
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/functions.php';
+require '../../config/config.php';
+require '../../config/functions.php';
 requireRole('admin');
+
+if ($login==='' || $password ===''){
+    // Log incomplete login attempt
+    logActivity($pdo,null,'$login','failed');
+
+ }else{
+    
+    if(loginUser($pdo,$login,$password)){
+        //Log complete login attempt
+        logActivity(
+        $pdo,$_SESSION['user_id'],
+        $_SESSION['user_email'],
+        'login',
+        'success');
+        echo 'Location: ' . BASE_URL . '/app/' .$_SESSION['user_role'] . '/index.php';
+        header('Location: ' . BASE_URL . '/app/' . $_SESSION['user_role'] . '/index.php');
+        exit;
+    }
+
+ }
+
 ?>
 
 <!DOCTYPE html>
@@ -12,12 +33,18 @@ requireRole('admin');
     <title>Document</title>
 </head>
 <body>
-    <h1>Welcome Admin</h1>
-    <?php if(isset($_SESSION['user_username'])): ?>
-        <p>Logged in as: <?= htmlspecialchars($_SESSION['user_username']) ?></p>
-    <?php endif; ?>
-
-    <form method="POST" action="<?= BASE_URL ?>/auth/signout.php">
+    <form method="POST">
+        <label>Username or Email</label>
+        <input type="text"
+               name="login"
+               >
+        <br>
+        <br>
+        <label>Password</label>
+        <input type="password"
+               name="password"
+               >
+        <br>
         <button type="submit">Sign Out</button>
     </form>
 </body>
