@@ -1,9 +1,5 @@
 <?php
 
-function redirect($path){
-    header("Location: " . BASE_URL . $path);
-    exit;
-}
 
 function loginUser($pdo, $login, $password){
     // Bypass authentication when ALLOW_ANY_LOGIN is enabled (useful for testing)
