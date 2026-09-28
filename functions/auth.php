@@ -1,65 +1,58 @@
 <?php
 
-
-function loginUser($pdo, $login, $password){
-    // Bypass authentication when ALLOW_ANY_LOGIN is enabled (useful for testing)
-    if(defined('ALLOW_ANY_LOGIN') && ALLOW_ANY_LOGIN){
-        $_SESSION['user_id'] = 0;
-        $_SESSION['user_email'] = $login;
-        $_SESSION['user_username'] = $login;
-        $_SESSION['user_role'] = 'admin';
-
-        return true;
-    }
-    #Query 2
+function loginUser($pdo, $login, $password)
+{
     $sql = "
-        SELECT 
+        SELECT
             user_id,
             user_email,
             user_username,
             user_password,
             user_role
         FROM users
-        WHERE user_email = :login 
-            OR user_username = :login
+        WHERE user_email = :login
+           OR user_username = :login
         LIMIT 1
-   ";
+    ";
 
-   $stmt = $pdo->prepare($sql);
-   $stmt->execute([ ':login' => $login]);
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([':login' => $login]);
 
-   $user = $stmt->fetch();
+    $user = $stmt->fetch();
 
-   if(!$user){
+    if (!$user) {
         return false;
-   }
-
-    if(!password_verify($password, $user['user_password'])){
-          return false;
     }
 
+    if (!password_verify($password, $user['user_password'])) {
+        return false;
+    }
 
-   $_SESSION['user_id'] = $user['user_id'];    
-   $_SESSION['user_email'] = $user['user_email'];
-   $_SESSION['user_username'] = $user['user_username'];
-   $_SESSION['user_role'] = $user['user_role'];
+    $_SESSION['user_id'] = $user['user_id'];
+    $_SESSION['user_email'] = $user['user_email'];
+    $_SESSION['user_username'] = $user['user_username'];
+    $_SESSION['user_role'] = $user['user_role'];
 
-   return true;
-}   
+    $_SESSION['session_id'] = StartUserSession($pdo);
+    return true;
+}
 
-function requireLogin(){
-    if(!isset($_SESSION['user_id'])){
-        header("Location: " . BASE_URL . '/index.php');
+function requireLogin()
+{
+    if (!isset($_SESSION['user_id'])) {
+        header('Location: ' . BASE_URL . '/index.php');
         exit;
     }
 }
 
-function requireRole($role){
-   requireLogin();
+function requireRole($role)
+{
+    requireLogin();
 
-   if ($_SESSION['user_role'] !== $role){
+    if ($_SESSION['user_role'] !== $role) {
         http_response_code(403);
-        die('Access Denied.');
-   }
+        die('Access denied.');
+    }
 }
+
 ?>
