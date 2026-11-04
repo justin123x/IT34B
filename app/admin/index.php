@@ -1,14 +1,18 @@
 <?php
-require_once '../../config/config.php';
 
+require '../../config/config.php';
 
 requireRole('admin');
 
-logActivity($pdo,$_SESSION['user_id'],
-        $_SESSION['user_email'],
-        'view_activity_logs',
-        'success'
+/*
+logActivity(
+    $pdo,
+    $_SESSION['user_id'],
+    $_SESSION['user_email'],
+    'view_activity_logs',
+    'success'
 );
+*/
 
 // Determine current section
 $section = $_GET['section'] ?? 'activity-logs';
@@ -50,6 +54,97 @@ if ($section === 'activity-logs') {
     $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+if ($action === 'export') {
+
+    if ($section === 'activity-logs') {
+
+        $stmt = $pdo->query("
+            SELECT
+                activity_logs_id,
+                user_id,
+                user_email,
+                activity_log_action,
+                activity_log_status,
+                activity_log_address,
+                activity_log_user_agent,
+                activity_log_create_at
+            FROM activity_logs
+            ORDER BY activity_log_create_at DESC
+        ");
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        logActivity(
+            $pdo,
+            $_SESSION['user_id'],
+            $_SESSION['user_email'],
+            'export_activity_logs',
+            'success'
+        );
+
+        exportCsv(
+            'activity_logs',
+            [
+                'Record ID', 'User ID', 'User Email', 'Action',
+                'Status', 'IP Address', 'User Agent', 'Date & Time',
+            ],
+            $rows
+        );
+    }
+
+    if ($section === 'user-sessions') {
+
+        $stmt = $pdo->query("
+            SELECT
+                us.session_id,
+                us.user_id,
+                u.user_username,
+                u.user_email,
+                u.user_role,
+                us.session_start,
+                us.session_end,
+                us.session_duration
+            FROM user_sessions us
+            INNER JOIN users u ON us.user_id = u.user_id
+            ORDER BY us.session_start DESC
+        ");
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($rows as &$r) {
+            $r['session_end'] = $r['session_end'] ?: 'Active';
+            if ($r['session_duration'] !== null) {
+                $s       = (int) $r['session_duration'];
+                $hours   = floor($s / 3600);
+                $minutes = floor(($s % 3600) / 60);
+                $seconds = $s % 60;
+                $r['session_duration'] = sprintf(
+                    '%02d hr %02d min %02d sec',
+                    $hours, $minutes, $seconds
+                );
+            } else {
+                $r['session_duration'] = 'Active';
+            }
+        }
+        unset($r);
+
+        logActivity(
+            $pdo,
+            $_SESSION['user_id'],
+            $_SESSION['user_email'],
+            'export_user_sessions',
+            'success'
+        );
+
+        exportCsv(
+            'user_sessions',
+            [
+                'Session ID', 'User ID', 'Username', 'Email',
+                'Role', 'Session Start', 'Session End', 'Duration',
+            ],
+            $rows
+        );
+    }
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -59,51 +154,46 @@ if ($section === 'activity-logs') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
 </head>
 
 <body>
 
-    <div class="container-fluid py-4">
+    <h1>Welcome Admin</h1>
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3 mb-0">Admin Dashboard</h1>
-            <a href="../../auth/signout.php" class="btn btn-light btn-sm border">Sign Out</a>
-        </div>
+    <form method="POST" action="../../auth/signout.php">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken()) ?>" >
+        <button type="submit"> Sign Out </button>
+    </form>
+    
+    <hr>
 
-        <ul class="nav nav-tabs mb-3">
-            <li class="nav-item">
-                <a class="nav-link <?= $section === 'activity-logs' ? 'active fw-bold' : '' ?>"
-                   href="index.php?section=activity-logs">Activity Logs</a>
-             </li>
-             <li class="nav-item">
-                 <a class="nav-link <?= $section === 'user-sessions' ? 'active fw-bold' : '' ?>"
-                   href="index.php?section=user-sessions">User Sessions</a>
-            </li>
-        </ul>
+    <nav>
+        <a href="index.php?section=activity-logs">Activity Logs |</a>
+        <a href="index.php?section=user-sessions">User Sessions |</a>
+    </nav>
 
-        <?php if ($section === 'activity-logs'): ?>
+    <?php if ($section === 'activity-logs'): ?>
 
-            <h4>Activity Logs</h4>
+        <h4>Activity Logs
+            <a href="index.php?section=activity-logs&amp;action=export">Export CSV</a>
+        </h4>
 
-            <table id="activityTable" class="table table-bordered table-sm mb-0">
+        <table id="activityTable" border="1" cellpadding="5" cellspacing="0">
 
-                <thead class="table-light">
-                    <tr>
-                        <th>Record ID</th>
-                        <th>User ID</th>
-                        <th>User Email</th>
-                        <th>Action</th>
-                        <th>Status</th>
-                        <th>IP Address</th>
-                        <th>User Agent</th>
-                        <th>Date & Time</th>
-                    </tr>
-                </thead>
+            <thead>
+                <tr>
+                    <th>Record ID</th>
+                    <th>User ID</th>
+                    <th>User Email</th>
+                    <th>Action</th>
+                    <th>Status</th>
+                    <th>IP Address</th>
+                    <th>User Agent</th>
+                    <th>Date & Time</th>
+                </tr>
+            </thead>
 
-                <tbody>
+            <tbody>
 
                 <?php foreach ($activities as $activity): ?>
 
@@ -125,11 +215,7 @@ if ($section === 'activity-logs') {
                         </td>
 
                         <td>
-                            <?php if ($activity['activity_log_status'] === 'success'): ?>
-                                <span class="badge badge-success"><?= htmlspecialchars($activity['activity_log_status']) ?></span>
-                            <?php else: ?>
-                                <span class="badge badge-danger"><?= htmlspecialchars($activity['activity_log_status']) ?></span>
-                            <?php endif; ?>
+                            <?= htmlspecialchars($activity['activity_log_status']) ?>
                         </td>
 
                         <td>
@@ -156,11 +242,13 @@ if ($section === 'activity-logs') {
 
     <?php if ($section === 'user-sessions'): ?>
 
-        <h4>User Sessions</h4>
+        <h4>User Sessions
+            <a href="index.php?section=user-sessions&amp;action=export">Export CSV</a>
+        </h4>
 
-        <table id="sessionTable" class="table table-bordered table-sm mb-0">
+        <table id="sessionTable" border="1" cellpadding="5" cellspacing="0">
 
-            <thead class="table-light">
+            <thead>
                 <tr>
                     <th>Session ID</th>
                     <th>User ID</th>
@@ -214,26 +302,26 @@ if ($section === 'activity-logs') {
 
                             <?php
 
-                                if ($session['session_duration'] !== null) {
+                            if ($session['session_duration'] !== null) {
 
-                                    $seconds = (int) $session['session_duration'];
+                                $seconds = (int) $session['session_duration'];
 
-                                    $hours = floor($seconds / 3600);
-                                    $minutes = floor(($seconds % 3600) / 60);
-                                    $seconds = $seconds % 60;
+                                $hours = floor($seconds / 3600);
+                                $minutes = floor(($seconds % 3600) / 60);
+                                $seconds = $seconds % 60;
 
-                                    echo sprintf(
-                                        '%02d hr %02d min %02d sec',
-                                        $hours,
-                                        $minutes,
-                                        $seconds
-                                    );
+                                echo sprintf(
+                                    '%02d hr %02d min %02d sec',
+                                    $hours,
+                                    $minutes,
+                                    $seconds
+                                );
 
-                                } else {
+                            } else {
 
-                                    echo 'Ongoing';
+                                echo 'Active';
 
-                                }
+                            }
 
                             ?>
 
@@ -248,21 +336,5 @@ if ($section === 'activity-logs') {
         </table>
 
     <?php endif; ?>
-
-    </div>
-
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
-
-     <script>
-         $('#activityTable, #sessionTable').DataTable({
-             paging: false,
-             info: false,
-             searching: false,
-             ordering: false
-         });
-     </script>
 </body>
 </html>
