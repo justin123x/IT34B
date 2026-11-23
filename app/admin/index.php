@@ -27,7 +27,7 @@ if ($section === 'activity-logs') {
     $stmt = $pdo->query("
         SELECT *
         FROM activity_logs
-        ORDER BY activity_log_create_at DESC
+        ORDER BY activity_log_created_at DESC
     ");
 
     $activities = $stmt->fetchAll(PDO::FETCH_ASSOC);
